@@ -300,44 +300,40 @@ function generateTicket() {
 }
 
 function sendToGoogleSheets(data) {
-  if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL === "") {
-    console.log("No Google Sheet URL configured");
-    return;
+  if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL === "") return;
+
+  // Simple form GET submission to hidden iframe — the oldest trick in the book
+  var form = document.createElement("form");
+  form.method = "GET";
+  form.action = GOOGLE_SHEET_URL;
+  form.target = "hidden_iframe";
+
+  var fields = {
+    ticketNo: data.ticketNo,
+    name: data.name,
+    parentOf: data.parentOf,
+    school: data.school,
+    grade: data.grade,
+    phone: data.phone,
+    email: data.email,
+    registeredAt: data.registeredAt
+  };
+
+  for (var key in fields) {
+    var input = document.createElement("input");
+    input.type = "hidden";
+    input.name = key;
+    input.value = fields[key] || "";
+    form.appendChild(input);
   }
 
-  // Build URL with parameters (same as the browser test that worked)
-  var url = GOOGLE_SHEET_URL 
-    + "?ticketNo=" + encodeURIComponent(data.ticketNo || "")
-    + "&name=" + encodeURIComponent(data.name || "")
-    + "&parentOf=" + encodeURIComponent(data.parentOf || "")
-    + "&school=" + encodeURIComponent(data.school || "")
-    + "&grade=" + encodeURIComponent(data.grade || "")
-    + "&phone=" + encodeURIComponent(data.phone || "")
-    + "&email=" + encodeURIComponent(data.email || "")
-    + "&registeredAt=" + encodeURIComponent(data.registeredAt || "");
+  document.body.appendChild(form);
+  form.submit();
 
-  // METHOD 1: Script tag injection (most reliable — this is how JSONP works)
-  try {
-    var script = document.createElement("script");
-    script.src = url;
-    script.onload = function() { console.log("Method 1 SUCCESS"); document.head.removeChild(script); };
-    script.onerror = function() { console.log("Method 1 sent (error expected, data still received)"); document.head.removeChild(script); };
-    document.head.appendChild(script);
-  } catch(e) { console.log("Method 1 exception:", e); }
-
-  // METHOD 2: Hidden iframe navigation
-  try {
-    document.getElementById("hidden_iframe").src = url;
-    console.log("Method 2 (iframe) sent");
-  } catch(e) { console.log("Method 2 exception:", e); }
-
-  // METHOD 3: Fetch with no-cors (fire and forget)
-  try {
-    fetch(url, { mode: "no-cors", cache: "no-store" });
-    console.log("Method 3 (fetch) sent");
-  } catch(e) { console.log("Method 3 exception:", e); }
-
-  console.log("All 3 methods fired. URL:", url);
+  // Cleanup after a delay
+  setTimeout(function() {
+    if (form.parentNode) form.parentNode.removeChild(form);
+  }, 2000);
 }
 
 function printTicket() { window.print(); }
