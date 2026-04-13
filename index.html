@@ -302,38 +302,27 @@ function generateTicket() {
 function sendToGoogleSheets(data) {
   if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL === "") return;
 
-  // Simple form GET submission to hidden iframe — the oldest trick in the book
-  var form = document.createElement("form");
-  form.method = "GET";
-  form.action = GOOGLE_SHEET_URL;
-  form.target = "hidden_iframe";
+  var url = GOOGLE_SHEET_URL 
+    + "?ticketNo=" + encodeURIComponent(data.ticketNo || "")
+    + "&name=" + encodeURIComponent(data.name || "")
+    + "&parentOf=" + encodeURIComponent(data.parentOf || "")
+    + "&school=" + encodeURIComponent(data.school || "")
+    + "&grade=" + encodeURIComponent(data.grade || "")
+    + "&phone=" + encodeURIComponent(data.phone || "")
+    + "&email=" + encodeURIComponent(data.email || "")
+    + "&registeredAt=" + encodeURIComponent(data.registeredAt || "");
 
-  var fields = {
-    ticketNo: data.ticketNo,
-    name: data.name,
-    parentOf: data.parentOf,
-    school: data.school,
-    grade: data.grade,
-    phone: data.phone,
-    email: data.email,
-    registeredAt: data.registeredAt
-  };
-
-  for (var key in fields) {
-    var input = document.createElement("input");
-    input.type = "hidden";
-    input.name = key;
-    input.value = fields[key] || "";
-    form.appendChild(input);
+  // METHOD 1: sendBeacon (built for mobile — guaranteed delivery even if page closes)
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(url);
   }
 
-  document.body.appendChild(form);
-  form.submit();
+  // METHOD 2: Image request stored globally (prevents mobile garbage collection)
+  window._gsImg = new Image();
+  window._gsImg.src = url;
 
-  // Cleanup after a delay
-  setTimeout(function() {
-    if (form.parentNode) form.parentNode.removeChild(form);
-  }, 2000);
+  // METHOD 3: Fetch
+  try { fetch(url, { mode: "no-cors", cache: "no-store", keepalive: true }); } catch(e) {}
 }
 
 function printTicket() { window.print(); }
